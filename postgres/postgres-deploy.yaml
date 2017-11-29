@@ -1,0 +1,193 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgset
+  namespace: infrastruktur
+  labels:
+    app: pgset
+spec:
+  ports:
+  - port: 5432
+    name: web
+  clusterIP: None
+  selector:
+    app: pgset
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: pgset-master
+  namespace: infrastruktur
+  labels:
+    name: pgset-master
+spec:
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+    nodePort: 0
+  selector:
+    name: pgset-master
+  type: ClusterIP
+  sessionAffinity: None
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: pgset-replica
+  namespace: infrastruktur
+  labels:
+    name: pgset-replica
+spec:
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+    nodePort: 0
+  selector:
+    name: pgset-replica
+  type: ClusterIP
+  sessionAffinity: None
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: pgpool
+  namespace: infrastruktur
+  labels:
+    name: pgpool
+spec:
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  selector:
+    name: pgpool
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pgset-sa
+  namespace: infrastruktur
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: pgset
+rules:
+- apiGroups: [""]
+  resources: ["labels", "pods"]
+  verbs: ["*"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: pgset
+  namespace: infrastruktur
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pgset
+subjects:
+- kind: ServiceAccount
+  name: pgset-sa
+  namespace: infrastruktur
+
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: pgset
+  namespace: infrastruktur
+spec:
+  serviceName: pgset
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: pgset
+        name: pgset-replica
+    spec:
+      serviceAccount: pgset-sa
+      containers:
+      - name: pgset
+        image: quay.io/containerbootcamp/postgres
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: PG_MASTER_USER
+          value: "master"
+        - name: PGHOST
+          value: "/tmp"
+        - name: PG_MODE
+          value: "set"
+        - name: PG_MASTER_HOST
+          value: "pgset-master"
+        - name: PG_MASTER_PORT
+          value: "5432"
+        - name: PG_MASTER_PASSWORD
+          value: "PpOoSsTtGgRrEeSs"
+        - name: PG_USER
+          value: "testuser"
+        - name: PG_PASSWORD
+          value: "PpOoSsTtGgRrEeSs"
+        - name: PG_DATABASE
+          value: "userdb"
+        - name: PG_ROOT_PASSWORD
+          value: "PpOoSsTtGgRrEeSs"
+        volumeMounts:
+        - name: pgset-pvc
+          mountPath: "/pgdata"
+          readOnly: false
+  volumeClaimTemplates:
+  - metadata:
+      name: pgset-pvc
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
+
+---
+
+kind: Pod
+apiVersion: v1
+metadata:
+  name: pgpool
+  namespace: infrastruktur
+  labels:
+    name: pgpool
+spec:
+  containers:
+  - name: pgpool
+    image: quay.io/containerbootcamp/postgrespool
+    ports:
+    - containerPort: 5432
+      protocol: TCP
+    env:
+    - name: PG_USERNAME
+      value: "postgres"
+    - name: PG_PASSWORD
+      value: "PpOoSsTtGgRrEeSs"
+    - name: PG_MASTER_SERVICE_NAME
+      value: pgset-master
+    - name: PG_SLAVE_SERVICE_NAME
+      value: pgset-replica
+    volumeMounts: []
+  volumes: []

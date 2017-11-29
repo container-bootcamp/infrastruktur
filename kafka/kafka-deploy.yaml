@@ -1,0 +1,81 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: infrastruktur
+  labels:
+    app: kafka
+    role: massaging
+spec:
+  ports:
+  - port: 9092
+  selector:
+    app: kafka
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: broker
+  namespace: infrastruktur
+  labels:
+    app: kafka
+    role: massaging
+spec:
+  ports:
+  - port: 9092
+  clusterIP: None
+  selector:
+    app: kafka
+
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: broker
+  namespace: infrastruktur
+spec:
+  serviceName: "broker"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: kafka
+        role: massaging
+    spec:
+      containers:
+        - name: kafka
+          image: quay.io/containerbootcamp/kafka
+          command:
+          - sh
+          - -c
+          - "export KAFKA_BROKER_ID=$(hostname | awk -F'-' '{print $2}') ; export KAFKA_ADVERTISED_HOST_NAME=$(echo $HOSTNAME.broker) ; rm -rf /data/lost+found ; /start-with-topics.sh"
+          resources:
+            limits:
+              memory: "512Mi"
+          volumeMounts:
+          - name: kafka-data
+            mountPath: /data
+          - name: kafka-data
+            mountPath: /logs
+          env:
+            - name: ZOOKEEPER_CONNECTION_STRING
+              value: "zoo-0.zoo:2181,zoo-1.zoo:2181,zoo-2.zoo:2181"
+            - name: KAFKA_ADVERTISED_PORT
+              value: "9092"
+            - name: KAFKA_PORT
+              value: "9092"
+            - name: KAFKA_HEAP_OPTS
+              value: -Xmx256M
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

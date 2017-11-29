@@ -1,0 +1,80 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  namespace: infrastruktur
+  labels:
+    app: kafka
+    role: massaging
+spec:
+  ports:
+  - port: 2181
+    name: client
+  selector:
+    app: zookeeper
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: zoo
+  namespace: infrastruktur
+  labels:
+    app: kafka
+    role: massaging
+spec:
+  ports:
+  - port: 2888
+    name: peer
+  - port: 3888
+    name: leader-election
+  clusterIP: None
+  selector:
+    app: zookeeper
+
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: zoo
+  namespace: infrastruktur
+spec:
+  serviceName: zoo
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+        role: massaging
+    spec:
+      containers:
+      - name: zookeeper
+        image: quay.io/containerbootcamp/zookeeper
+        command:
+          - sh
+          - -c
+          - "export ZOOKEEPER_ID=$(hostname | awk -F'-' '{print $2}') ; /usr/local/sbin/start.sh"
+        volumeMounts:
+          - name: zk-data
+            mountPath: /var/lib/zookeeper
+        ports:
+        - containerPort: 2181
+        env:
+        - name: ZOOKEEPER_SERVER_0
+          value: "zoo-0.zoo"
+        - name: ZOOKEEPER_SERVER_1
+          value: "zoo-1.zoo"
+        - name: ZOOKEEPER_SERVER_2
+          value: "zoo-2.zoo"
+  volumeClaimTemplates:
+  - metadata:
+      name: zk-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi

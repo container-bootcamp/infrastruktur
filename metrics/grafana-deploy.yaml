@@ -1,0 +1,86 @@
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: grafana
+ namespace: metrics
+spec:
+ accessModes:
+  - ReadWriteOnce
+ resources:
+   requests:
+     storage: 10Gi
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: metrics
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grafana
+        component: core
+    spec:
+      containers:
+      - image: grafana/grafana:4.5.1
+        name: grafana
+        # env:
+        resources:
+          # keep request = limit to keep this container in guaranteed class
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+          # The following env variables set up basic auth twith the default admin user and admin password.
+          # - name: GF_AUTH_BASIC_ENABLED
+          #   value: "true"
+          # - name: GF_AUTH_ANONYMOUS_ENABLED
+          #   value: "false"
+          - name: GF_SECURITY_ADMIN_PASSWORD
+            value: "secret"
+          # - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+          #   value: Admin
+          # does not really work, because of template variables in exported dashboards:
+          # - name: GF_DASHBOARDS_JSON_ENABLED
+          #   value: "true"
+          - name: GF_SERVER_ROOT_URL
+            value: "/api/v1/proxy/namespaces/metrics/services/grafana/"
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 3000
+          # initialDelaySeconds: 30
+          # timeoutSeconds: 1
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: grafana
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: metrics
+  labels:
+    app: grafana
+    component: core
+spec:
+  ports:
+    - port: 3000
+  selector:
+    app: grafana
+    component: core

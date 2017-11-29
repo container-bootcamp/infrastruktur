@@ -1,0 +1,209 @@
+################################
+# Services for scaping discovery
+################################
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-scheduler-prometheus-discovery
+  namespace: kube-system
+  labels:
+    k8s-app: kube-scheduler
+spec:
+  selector:
+    k8s-app: kube-scheduler
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10251
+    targetPort: 10251
+    protocol: TCP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-controller-manager-prometheus-discovery
+  namespace: kube-system
+  labels:
+    k8s-app: kube-controller-manager
+spec:
+  selector:
+    k8s-app: kube-controller-manager
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics
+    port: 10252
+    targetPort: 10252
+    protocol: TCP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-dns-prometheus-discovery
+  namespace: kube-system
+  labels:
+    k8s-app: kube-dns
+spec:
+  selector:
+    k8s-app: kube-dns
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http-metrics-skydns
+    port: 10055
+    targetPort: 10055
+    protocol: TCP
+  - name: http-metrics-dnsmasq
+    port: 10054
+    targetPort: 10054
+    protocol: TCP
+
+---
+
+############################
+# Service Monitors
+############################
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-apiserver
+  namespace: metrics
+  labels:
+    k8s-app: apiserver
+spec:
+  jobLabel: component
+  selector:
+    matchLabels:
+      component: apiserver
+      provider: kubernetes
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  endpoints:
+  - port: https
+    interval: 30s
+    scheme: https
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      serverName: kubernetes
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubelet
+  namespace: metrics
+  labels:
+    k8s-app: kubelet
+spec:
+  jobLabel: k8s-app
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+  - port: cadvisor
+    interval: 30s
+    honorLabels: true
+  selector:
+    matchLabels:
+      k8s-app: kubelet
+  namespaceSelector:
+    matchNames:
+    - kube-system
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-controller-manager
+  namespace: metrics
+  labels:
+    k8s-app: kube-controller-manager
+spec:
+  jobLabel: k8s-app
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+  selector:
+    matchLabels:
+      k8s-app: kube-controller-manager
+  namespaceSelector:
+    matchNames:
+    - kube-system
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-scheduler
+  namespace: metrics
+  labels:
+    k8s-app: kube-scheduler
+spec:
+  jobLabel: k8s-app
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+  selector:
+    matchLabels:
+      k8s-app: kube-scheduler
+  namespaceSelector:
+    matchNames:
+    - kube-system
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-state-metrics
+  namespace: metrics
+  labels:
+    k8s-app: kube-state-metrics
+spec:
+  jobLabel: k8s-app
+  selector:
+    matchLabels:
+      k8s-app: kube-state-metrics
+  namespaceSelector:
+    matchNames:
+    - monitoring
+  endpoints:
+  - port: http-metrics
+    interval: 30s
+    honorLabels: true
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-exporter
+  namespace: metrics
+  labels:
+    k8s-app: node-exporter
+spec:
+  jobLabel: k8s-app
+  selector:
+    matchLabels:
+      k8s-app: node-exporter
+  namespaceSelector:
+    matchNames:
+    - metrics
+  endpoints:
+  - port: http-metrics
+    interval: 30s
