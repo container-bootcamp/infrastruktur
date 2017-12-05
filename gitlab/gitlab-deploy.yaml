@@ -13,7 +13,7 @@ data:
   GITLAB_SECRETS_SECRET_KEY_BASE: "Mz9J7ghRcn9H49bHcdJpqCWVHCVstp3vRfdstTv7mcL4PMphqwxN3gfxCHfqrTgV"
   GITLAB_SECRETS_OTP_KEY_BASE: "Jm7pqqpqTdrqJPj7svXbh9v94Hsc9nfTNwphxtR9bnkvM94sPjkfg7PxtKFWj9wp"
   GITLAB_ROOT_PASSWORD: "GgIiTtLlAaBb"
-  GITLAB_RELATIVE_URL_ROOT: "/ci"
+#  GITLAB_RELATIVE_URL_ROOT: "/ci"
   DB_ADAPTER: "postgresql"
   DB_HOST: "pgpool.ci"
   DB_NAME: "gitlabhq_production"
@@ -156,17 +156,22 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
+    ingress.kubernetes.io/ssl-redirect: "true"
     ingress.kubernetes.io/auth-type: basic
     ingress.kubernetes.io/auth-secret: basic-auth
     ingress.kubernetes.io/auth-realm: "Authentication Required"
   name: gitlab
   namespace: ci
 spec:
+  tls:
+  - hosts:
+    - gitlab.bootcamp.ch.innoq.io
+    secretName: tls-default
   rules:
-  - host: bootcamp.ch.innoq.io
+  - host: gitlab.bootcamp.ch.innoq.io
     http:
       paths:
-      - path: /ci
+      - path: /
         backend:
           serviceName: gitlab
           servicePort: 80
