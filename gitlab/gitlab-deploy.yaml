@@ -87,7 +87,6 @@ spec:
   - name: ssh
     port: 22
     nodePort: 30022
-    targetPort: 30022
     protocol: TCP
   selector:
     app: gitlab
