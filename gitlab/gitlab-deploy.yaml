@@ -7,15 +7,15 @@ metadata:
   namespace: ci
 data:
   GITLAB_PORT: "80"
-  GITLAB_HOST: "bootcamp.ch.innoq.io"
-  GITLAB_SSH_PORT: "22"
+  GITLAB_HOST: "gitlab.bootcamp.ch.innoq.io"
+  GITLAB_SSH_PORT: "30022"
   GITLAB_SECRETS_DB_KEY_BASE: "bd7r99HhcspjxRJTLTjggcMdvwwjFzgLMjNrWRhJnpjHn9tJtVsjF4wXFRP9KrFf"
   GITLAB_SECRETS_SECRET_KEY_BASE: "Mz9J7ghRcn9H49bHcdJpqCWVHCVstp3vRfdstTv7mcL4PMphqwxN3gfxCHfqrTgV"
   GITLAB_SECRETS_OTP_KEY_BASE: "Jm7pqqpqTdrqJPj7svXbh9v94Hsc9nfTNwphxtR9bnkvM94sPjkfg7PxtKFWj9wp"
   GITLAB_ROOT_PASSWORD: "GgIiTtLlAaBb"
-#  GITLAB_RELATIVE_URL_ROOT: "/ci"
+#  GITLAB_RELATIVE_URL_ROOT: "/"
   DB_ADAPTER: "postgresql"
-  DB_HOST: "pgpool.ci"
+  DB_HOST: "pgpool"
   DB_NAME: "gitlabhq_production"
   DB_USER: "postgres"
   DB_PASS: "PpOoSsTtGgRrEeSs"
@@ -68,6 +68,27 @@ spec:
     name: web
   - port: 22
     name: ssh
+  selector:
+    app: gitlab
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-ssh
+  namespace: ci
+  labels:
+    app: gitlab
+    role: ci
+spec:
+  type: NodePort
+  ports:
+  - name: ssh
+    port: 22
+    nodePort: 30022
+    targetPort: 30022
+    protocol: TCP
   selector:
     app: gitlab
 
