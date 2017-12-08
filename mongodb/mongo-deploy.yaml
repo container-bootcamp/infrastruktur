@@ -73,13 +73,13 @@ spec:
           image: mongo
           resources:
             limits:
-              memory: "1Gi"
+              memory: "2Gi"
           command:
             - mongod
             - --master
             - --bind_ip_all
             - --wiredTigerCacheSizeGB 
-            - "0.5"
+            - "0.25"
           ports:
             - containerPort: 27017
           volumeMounts:
