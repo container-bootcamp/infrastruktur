@@ -1,0 +1,17 @@
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+  name: emojivoto
+  namespace: emojivoto
+spec:
+  rules:
+  - host: conduit.ch.innoq.io
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-svc
+          servicePort: 80

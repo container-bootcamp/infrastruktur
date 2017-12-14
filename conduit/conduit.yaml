@@ -74,7 +74,7 @@ spec:
           containerPort: 8085
         - name: admin-http
           containerPort: 9995
-        image: gcr.io/runconduit/controller:v0.1.0
+        image: quay.io/fakod/conduit-controller
         imagePullPolicy: IfNotPresent
         args:
         - "public-api"
@@ -88,7 +88,7 @@ spec:
           containerPort: 8089
         - name: admin-http
           containerPort: 9999
-        image: gcr.io/runconduit/controller:v0.1.0
+        image: quay.io/fakod/conduit-controller
         imagePullPolicy: IfNotPresent
         args:
         - "destination"
@@ -100,7 +100,7 @@ spec:
           containerPort: 8086
         - name: admin-http
           containerPort: 9996
-        image: gcr.io/runconduit/controller:v0.1.0
+        image: quay.io/fakod/conduit-controller
         imagePullPolicy: IfNotPresent
         args:
         - "proxy-api"
@@ -114,7 +114,7 @@ spec:
           containerPort: 8088
         - name: admin-http
           containerPort: 9998
-        image: gcr.io/runconduit/controller:v0.1.0
+        image: quay.io/fakod/conduit-controller
         imagePullPolicy: IfNotPresent
         args:
         - "tap"
@@ -126,7 +126,7 @@ spec:
           containerPort: 8087
         - name: admin-http
           containerPort: 9997
-        image: gcr.io/runconduit/controller:v0.1.0
+        image: quay.io/fakod/conduit-controller
         imagePullPolicy: IfNotPresent
         args:
         - "telemetry"
@@ -180,6 +180,7 @@ spec:
       annotations:
         conduit.io/created-by: "conduit/cli v0.1.0"
     spec:
+      serviceAccount: conduit-controller
       containers:
       - name: web
         ports:
@@ -240,6 +241,7 @@ spec:
       annotations:
         conduit.io/created-by: "conduit/cli v0.1.0"
     spec:
+      serviceAccount: conduit-controller
       volumes:
       - name: prometheus-config
         configMap:
