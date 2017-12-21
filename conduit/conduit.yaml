@@ -4,6 +4,43 @@ apiVersion: v1
 metadata:
   name: conduit
 
+### Service Account ###
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: conduit-controller
+  namespace: conduit
+
+### RBAC ###
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: conduit-controller
+rules:
+- apiGroups: ["extensions"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["list", "get", "watch"]
+- apiGroups: [""]
+  resources: ["pods", "endpoints", "services"]
+  verbs: ["list", "get", "watch"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: conduit-controller
+  namespace: conduit
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: conduit-controller
+subjects:
+- kind: ServiceAccount
+  name: conduit-controller
+  namespace: conduit
+
 ### Controller ###
 ---
 kind: Service
@@ -15,7 +52,7 @@ metadata:
     app: controller
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   type: ClusterIP
   selector:
@@ -35,7 +72,7 @@ metadata:
     app: controller
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   type: ClusterIP
   selector:
@@ -55,7 +92,7 @@ metadata:
     app: controller
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   replicas: 1
   template:
@@ -64,7 +101,7 @@ spec:
         app: controller
         conduit.io/plane: control
       annotations:
-        conduit.io/created-by: "conduit/cli v0.1.0"
+        conduit.io/created-by: "conduit/cli v0.1.1"
     spec:
       serviceAccount: conduit-controller
       containers:
@@ -74,7 +111,7 @@ spec:
           containerPort: 8085
         - name: admin-http
           containerPort: 9995
-        image: quay.io/fakod/conduit-controller
+        image: quay.io/fakod/conduit-controller:latest
         imagePullPolicy: IfNotPresent
         args:
         - "public-api"
@@ -88,7 +125,7 @@ spec:
           containerPort: 8089
         - name: admin-http
           containerPort: 9999
-        image: quay.io/fakod/conduit-controller
+        image: quay.io/fakod/conduit-controller:latest
         imagePullPolicy: IfNotPresent
         args:
         - "destination"
@@ -100,7 +137,7 @@ spec:
           containerPort: 8086
         - name: admin-http
           containerPort: 9996
-        image: quay.io/fakod/conduit-controller
+        image: quay.io/fakod/conduit-controller:latest
         imagePullPolicy: IfNotPresent
         args:
         - "proxy-api"
@@ -114,7 +151,7 @@ spec:
           containerPort: 8088
         - name: admin-http
           containerPort: 9998
-        image: quay.io/fakod/conduit-controller
+        image: quay.io/fakod/conduit-controller:latest
         imagePullPolicy: IfNotPresent
         args:
         - "tap"
@@ -126,7 +163,7 @@ spec:
           containerPort: 8087
         - name: admin-http
           containerPort: 9997
-        image: quay.io/fakod/conduit-controller
+        image: quay.io/fakod/conduit-controller:latest
         imagePullPolicy: IfNotPresent
         args:
         - "telemetry"
@@ -146,7 +183,7 @@ metadata:
     app: web
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   type: ClusterIP
   selector:
@@ -169,7 +206,7 @@ metadata:
     app: web
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   replicas: 1
   template:
@@ -178,9 +215,8 @@ spec:
         app: web
         conduit.io/plane: control
       annotations:
-        conduit.io/created-by: "conduit/cli v0.1.0"
+        conduit.io/created-by: "conduit/cli v0.1.1"
     spec:
-      serviceAccount: conduit-controller
       containers:
       - name: web
         ports:
@@ -188,7 +224,7 @@ spec:
           containerPort: 8084
         - name: admin-http
           containerPort: 9994
-        image: gcr.io/runconduit/web:v0.1.0
+        image: gcr.io/runconduit/web:v0.1.1
         imagePullPolicy: IfNotPresent
         args:
         - "-addr=:8084"
@@ -196,8 +232,7 @@ spec:
         - "-api-addr=api:8085"
         - "-static-dir=/dist"
         - "-template-dir=/templates"
-        - "-uuid=0d2e4d5f-5684-42ae-8929-8c980a69a7b0"
-        - "-namespace=conduit"
+        - "-uuid=75a4bd49-b6c7-4e6c-a292-20105186e555"
 
 ### Prometheus ###
 ---
@@ -210,7 +245,7 @@ metadata:
     app: prometheus
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   type: ClusterIP
   selector:
@@ -230,7 +265,7 @@ metadata:
     app: prometheus
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 spec:
   replicas: 1
   template:
@@ -239,9 +274,8 @@ spec:
         app: prometheus
         conduit.io/plane: control
       annotations:
-        conduit.io/created-by: "conduit/cli v0.1.0"
+        conduit.io/created-by: "conduit/cli v0.1.1"
     spec:
-      serviceAccount: conduit-controller
       volumes:
       - name: prometheus-config
         configMap:
@@ -277,7 +311,7 @@ metadata:
     app: prometheus
     conduit.io/plane: control
   annotations:
-    conduit.io/created-by: "conduit/cli v0.1.0"
+    conduit.io/created-by: "conduit/cli v0.1.1"
 data:
   prometheus.yml: |-
     global:
