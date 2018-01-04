@@ -1,10 +1,12 @@
 #!/bin/bash
 
+: ${1?Please provide a password}
+
 ## initial namespace setup and rook
 kubectl apply -f namespaces.yaml
 
 ## for basic auth if ingress
-./create-basic-auth-secret.sh
+./create-basic-auth-secret.sh $1
 
 ## the operators
 kubectl apply -f operator/
