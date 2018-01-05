@@ -1,0 +1,65 @@
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: istio-mesh
+  namespace: metrics
+  labels:
+    k8s-app: istio
+spec:
+  jobLabel: istio-mesh
+  selector:
+    matchLabels:
+      istio: mixer
+  namespaceSelector:
+    matchNames:
+    - istio-system
+  endpoints:
+  - port: prometheus
+    path: /metrics
+    interval: 5s
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: envoy
+  namespace: metrics
+  labels:
+    k8s-app: istio
+spec:
+  jobLabel: envoy
+  selector:
+    matchLabels:
+      istio: mixer
+  namespaceSelector:
+    matchNames:
+    - istio-system
+  endpoints:
+  - port: statsd-prom
+    path: /metrics
+    interval: 5s
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mixer
+  namespace: metrics
+  labels:
+    k8s-app: istio
+spec:
+  jobLabel: mixer
+  selector:
+    matchLabels:
+      istio: mixer
+  namespaceSelector:
+    matchNames:
+    - istio-system
+  endpoints:
+  - port: http-health
+    path: /metrics
+    interval: 5s

@@ -1,0 +1,16 @@
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: istio
+  namespace: istio-system
+spec:
+  rules:
+  - host: istio.ch.innoq.io
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: istio-ingress
+          servicePort: 80
