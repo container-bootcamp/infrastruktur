@@ -1,6 +1,8 @@
 
-kubectl apply  -f install/kubernetes/istio.yaml
-kubectl apply  -f install/kubernetes/bootcamp-ingress.yaml
+* kubectl apply  -f install/kubernetes/istio.yaml
+* for ingress with basic auth
+  * kubectl -n bibliothek get secret basic-auth -o json | jq '.metadata.namespace = "istio-system"' | kubectl apply -f -
+  * kubectl apply  -f install/kubernetes/bootcamp-ingress.yaml
 
 kubectl create ns bookinfo
 kubectl -n bookinfo apply -f <(istioctl kube-inject -f samples/bookinfo/kube/bookinfo.yaml)
