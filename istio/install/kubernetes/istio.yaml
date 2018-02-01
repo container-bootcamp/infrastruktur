@@ -27,9 +27,6 @@ rules:
 - apiGroups: ["apiextensions.k8s.io"]
   resources: ["customresourcedefinitions"]
   verbs: ["*"]
-- apiGroups: ["istio.io"]
-  resources: ["istioconfigs", "istioconfigs.istio.io"]
-  verbs: ["*"]
 - apiGroups: ["extensions"]
   resources: ["thirdpartyresources", "thirdpartyresources.extensions", "ingresses", "ingresses/status"]
   verbs: ["*"]
@@ -49,11 +46,8 @@ rules:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: istio-initializer-istio-system
+  name: istio-sidecar-injector-istio-system
 rules:
-- apiGroups: ["*"]
-  resources: ["deployments", "statefulsets", "jobs", "cronjobs", "daemonsets", "replicasets", "replicationcontrollers"]
-  verbs: ["initialize", "patch", "watch", "list"]
 - apiGroups: ["*"]
   resources: ["configmaps"]
   verbs: ["get", "list", "watch"]
@@ -97,9 +91,6 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: istio-sidecar-istio-system
 rules:
-- apiGroups: ["istio.io"]
-  resources: ["istioconfigs"]
-  verbs: ["get", "watch", "list"]
 - apiGroups: ["extensions"]
   resources: ["thirdpartyresources", "ingresses"]
   verbs: ["get", "watch", "list", "update"]
@@ -121,18 +112,18 @@ roleRef:
   name: istio-pilot-istio-system
   apiGroup: rbac.authorization.k8s.io
 ---
-# Grant permissions to the Sidecar initializer
+# Grant permissions to the Sidecar sidecar-injector
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: istio-initializer-admin-role-binding-istio-system
+  name: istio-sidecar-injector-admin-role-binding-istio-system
 subjects:
 - kind: ServiceAccount
-  name: istio-initializer-service-account
+  name: istio-sidecar-injector-service-account
   namespace: istio-system
 roleRef:
   kind: ClusterRole
-  name: istio-initializer-istio-system
+  name: istio-sidecar-injector-istio-system
   apiGroup: rbac.authorization.k8s.io
 ---
 # Grant permissions to the CA.
@@ -215,7 +206,7 @@ spec:
     port: 9091
   - name: tcp-mtls
     port: 15004
-  - name: http-health
+  - name: http-monitoring
     port: 9093
   - name: configapi
     port: 9094
@@ -264,22 +255,22 @@ spec:
         - name: config-volume
           mountPath: /etc/statsd
       - name: mixer
-        image: docker.io/istio/mixer:0.4.0
+        image: docker.io/istio/mixer:0.5.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9091
+        - containerPort: 9093
         - containerPort: 9094
         - containerPort: 42422
         args:
-          - --configStoreURL=fs:///etc/opt/mixer/configroot
-          - --configStore2URL=k8s://
+          - --configStoreURL=k8s://
           - --configDefaultNamespace=istio-system
-          - --zipkinURL=http://zipkin.tracing:9411/api/v1/spans
+          - --zipkinURL=http://zipkin:9411/api/v1/spans
           - --logtostderr
           - -v
           - "2"
       - name: istio-proxy
-        image: docker.io/istio/proxy_debug:0.4.0
+        image: docker.io/istio/proxy:0.5.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 15004
@@ -345,6 +336,23 @@ spec:
 kind: CustomResourceDefinition
 apiVersion: apiextensions.k8s.io/v1beta1
 metadata:
+  name: circonuses.config.istio.io
+  labels:
+    package: circonus
+    istio: mixer-adapter
+spec:
+  group: config.istio.io
+  names:
+    kind: circonus
+    plural: circonuses
+    singular: circonus
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
   name: deniers.config.istio.io
   labels:
     package: denier
@@ -362,37 +370,20 @@ spec:
 kind: CustomResourceDefinition
 apiVersion: apiextensions.k8s.io/v1beta1
 metadata:
-  name: listcheckers.config.istio.io
+  name: fluentds.config.istio.io
   labels:
-    package: listchecker
+    package: fluentd
     istio: mixer-adapter
 spec:
   group: config.istio.io
   names:
-    kind: listchecker
-    plural: listcheckers
-    singular: listchecker
+    kind: fluentd
+    plural: fluentds
+    singular: fluentd
   scope: Namespaced
   version: v1alpha2
 ---
 
-kind: CustomResourceDefinition
-apiVersion: apiextensions.k8s.io/v1beta1
-metadata:
-  name: kuberneteses.config.istio.io
-  labels:
-    package: adapter.template.kubernetes
-    istio: mixer-instance
-spec:
-  group: config.istio.io
-  names:
-    kind: kubernetes
-    plural: kuberneteses
-    singular: kubernetes
-  scope: Namespaced
-  version: v1alpha2
-
----
 kind: CustomResourceDefinition
 apiVersion: apiextensions.k8s.io/v1beta1
 metadata:
@@ -406,6 +397,23 @@ spec:
     kind: kubernetesenv
     plural: kubernetesenvs
     singular: kubernetesenv
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: listcheckers.config.istio.io
+  labels:
+    package: listchecker
+    istio: mixer-adapter
+spec:
+  group: config.istio.io
+  names:
+    kind: listchecker
+    plural: listcheckers
+    singular: listchecker
   scope: Namespaced
   version: v1alpha2
 ---
@@ -447,6 +455,23 @@ spec:
 kind: CustomResourceDefinition
 apiVersion: apiextensions.k8s.io/v1beta1
 metadata:
+  name: opas.config.istio.io
+  labels:
+    package: opa
+    istio: mixer-adapter
+spec:
+  group: config.istio.io
+  names:
+    kind: opa
+    plural: opas
+    singular: opa
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
   name: prometheuses.config.istio.io
   labels:
     package: prometheus
@@ -457,6 +482,40 @@ spec:
     kind: prometheus
     plural: prometheuses
     singular: prometheus
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: rbacs.config.istio.io
+  labels:
+    package: rbac
+    istio: mixer-adapter
+spec:
+  group: config.istio.io
+  names:
+    kind: rbac
+    plural: rbacs
+    singular: rbac
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: servicecontrols.config.istio.io
+  labels:
+    package: servicecontrol
+    istio: mixer-adapter
+spec:
+  group: config.istio.io
+  names:
+    kind: servicecontrol
+    plural: servicecontrols
+    singular: servicecontrol
   scope: Namespaced
   version: v1alpha2
 ---
@@ -515,16 +574,33 @@ spec:
 kind: CustomResourceDefinition
 apiVersion: apiextensions.k8s.io/v1beta1
 metadata:
-  name: servicecontrols.config.istio.io
+  name: apikeies.config.istio.io
   labels:
-    package: servicecontrol
-    istio: mixer-adapter
+    package: apikey
+    istio: mixer-instance
 spec:
   group: config.istio.io
   names:
-    kind: servicecontrol
-    plural: servicecontrols
-    singular: servicecontrol
+    kind: apikey
+    plural: apikeies
+    singular: apikey
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: authorizations.config.istio.io
+  labels:
+    package: authorization
+    istio: mixer-instance
+spec:
+  group: config.istio.io
+  names:
+    kind: authorization
+    plural: authorizations
+    singular: authorization
   scope: Namespaced
   version: v1alpha2
 ---
@@ -542,6 +618,23 @@ spec:
     kind: checknothing
     plural: checknothings
     singular: checknothing
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: kuberneteses.config.istio.io
+  labels:
+    package: adapter.template.kubernetes
+    istio: mixer-instance
+spec:
+  group: config.istio.io
+  names:
+    kind: kubernetes
+    plural: kuberneteses
+    singular: kubernetes
   scope: Namespaced
   version: v1alpha2
 ---
@@ -630,6 +723,73 @@ spec:
   scope: Namespaced
   version: v1alpha2
 ---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: servicecontrolreports.config.istio.io
+  labels:
+    package: servicecontrolreport
+    istio: mixer-instance
+spec:
+  group: config.istio.io
+  names:
+    kind: servicecontrolreport
+    plural: servicecontrolreports
+    singular: servicecontrolreport
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: tracespans.config.istio.io
+  labels:
+    package: tracespan
+    istio: mixer-instance
+spec:
+  group: config.istio.io
+  names:
+    kind: tracespan
+    plural: tracespans
+    singular: tracespan
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: serviceroles.config.istio.io
+  labels:
+    istio: rbac
+spec:
+  group: config.istio.io
+  names:
+    kind: ServiceRole
+    plural: serviceroles
+    singular: servicerole
+  scope: Namespaced
+  version: v1alpha2
+---
+
+kind: CustomResourceDefinition
+apiVersion: apiextensions.k8s.io/v1beta1
+metadata:
+  name: servicerolebindings.config.istio.io
+  labels:
+    istio: rbac
+spec:
+  group: config.istio.io
+  names:
+    kind: ServiceRoleBinding
+    plural: servicerolebindings
+    singular: servicerolebinding
+  scope: Namespaced
+  version: v1alpha2
+---
+
 apiVersion: "config.istio.io/v1alpha2"
 kind: attributemanifest
 metadata:
@@ -1174,6 +1334,10 @@ spec:
   ports:
   - port: 15003
     name: http-discovery
+  - port: 8080
+    name: http-legacy-discovery
+  - port: 9093
+    name: http-monitoring
   - port: 443
     name: admission-webhook
   selector:
@@ -1202,7 +1366,7 @@ spec:
       serviceAccountName: istio-pilot-service-account
       containers:
       - name: discovery
-        image: docker.io/istio/pilot:0.4.0
+        image: docker.io/istio/pilot:0.5.0
         imagePullPolicy: IfNotPresent
         args: ["discovery", "-v", "2", "--admission-service", "istio-pilot"]
         ports:
@@ -1223,7 +1387,7 @@ spec:
         - name: config-volume
           mountPath: /etc/istio/config
       - name: istio-proxy
-        image: docker.io/istio/proxy_debug:0.4.0
+        image: docker.io/istio/proxy:0.5.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 15003
@@ -1262,7 +1426,6 @@ metadata:
   labels:
     istio: ingress
 spec:
-  type: LoadBalancer
   ports:
   - port: 80
 #   nodePort: 32000
@@ -1295,7 +1458,7 @@ spec:
       serviceAccountName: istio-ingress-service-account
       containers:
       - name: istio-ingress
-        image: docker.io/istio/proxy_debug:0.4.0
+        image: docker.io/istio/proxy:0.5.0
         args:
         - proxy
         - ingress
@@ -1382,10 +1545,11 @@ spec:
       serviceAccountName: istio-ca-service-account
       containers:
       - name: istio-ca
-        image: docker.io/istio/istio-ca:0.4.0
+        image: docker.io/istio/istio-ca:0.5.0
         imagePullPolicy: IfNotPresent
         command: ["/usr/local/bin/istio_ca"]
         args:
+          - --istio-ca-storage-namespace=istio-system
           - --grpc-port=8060
           - --grpc-hostname=istio-ca
           - --self-signed-ca=true
