@@ -1,0 +1,21 @@
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+  name: ingress
+  namespace: nuclio
+spec:
+  rules:
+  - host: nuclio.ch.innoq.io
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: nuclio-playground
+          servicePort: 8070
