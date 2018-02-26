@@ -71,7 +71,6 @@ metadata:
     prometheus: k8s
 spec:
   replicas: 1
-  version: v1.7.0
   serviceAccountName: prometheus
   externalUrl: http://127.0.0.1:8001/api/v1/proxy/namespaces/metrics/services/prometheus/
   serviceMonitorSelector:
@@ -98,4 +97,4 @@ spec:
       spec:
         resources:
           requests:
-            storage: 10Gi
+            storage: 50Gi
