@@ -52,7 +52,7 @@ subjects:
 
 ---
 
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
@@ -60,6 +60,10 @@ metadata:
 spec:
   serviceName: "mongo"
   replicas: 1
+  selector:
+    matchLabels:
+      app: mongo 
+      role: data
   template:
     metadata:
       labels:
