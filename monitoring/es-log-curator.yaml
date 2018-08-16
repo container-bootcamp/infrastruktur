@@ -27,7 +27,7 @@ data:
           direction: older
           timestring: '%Y.%m.%d'
           unit: days
-          unit_count: 3
+          unit_count: 1
           field:
           stats_result:
           epoch:
@@ -64,7 +64,7 @@ metadata:
   name: curator
   namespace: monitoring
 spec:
-  schedule: "1 */6 * * *"
+  schedule: "1 */2 * * *"
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 4
   jobTemplate:
